@@ -25,7 +25,7 @@ For a computer without a display:
 MPLBACKEND=Agg python main.py --demo
 ```
 
-Normal menu operations open plots; close each plot window to return to the menu. The demo never asks questions or opens windows: it saves 12 PNGs in `outputs/`. `outputs/demo_output.txt` contains a captured run.
+Normal menu operations open plot windows and return to the menu straight away; the windows stay open until you close them or quit. Choosing a custom shape shows a live plot that updates as each point is typed. The demo never asks questions or opens windows: it saves 13 PNGs in `outputs/`. `outputs/demo_output.txt` contains a captured run.
 
 ## Matrix concepts and functions
 
@@ -40,6 +40,7 @@ Normal menu operations open plots; close each plot window to return to the menu.
 | Determinant / cofactor expansion | Area change, mirroring, flattening | `matrix_ops.determinant`, `analysis.det_meaning` |
 | Rank | Independent dimensions | `matrix_ops.rank` |
 | Gauss–Jordan elimination | Inverse and undo | `matrix_ops.inverse_gauss_jordan`, `transformations.undo` |
+| Gauss–Jordan, step by step | Menu option 10: plot every row operation and the final inverse | `matrix_ops.gauss_jordan_steps`, `visualize.gauss_jordan` |
 | Noncommutativity | Compare AB and BA | `visualize.chain` |
 | Linear equations | Recover a 2×2 transformation from point pairs | `analysis.find_transformation` |
 | LU factorization | Solve the same system a second way | `analysis.find_transformation` |
@@ -81,6 +82,7 @@ Checks use `np.allclose()` and print `Verified: True/False`. `AB equals BA: Fals
 - Point-pair recovery assumes a **linear** map through the origin. Two independent original vectors give four independent equations. Dependent vectors can give no solution or infinitely many solutions. Rank tests and numerical checks use floating-point tolerances.
 - Eigenvectors stay on the same line: negative eigenvalues reverse them and zero eigenvalues crush them. A general rotation has complex eigenpairs, so the program explains why real arrows cannot be drawn.
 - SVD's U and VT can reflect as well as rotate. Sigma contains nonnegative stretches. Projection loses information and cannot be uniquely undone.
+- Menu option **10 (Inverse)** reads any square matrix and row-reduces `[A | I]` one elementary row operation at a time (swap, scale, eliminate) with exact fractions. Each step gets its own panel with the changed rows highlighted; the last panel shows `A⁻¹`. For a 2×2 matrix, a plot under each step shows the current left block applied to the current shape: it starts as `A × shape` and ends back at the original shape once the left block is `I`. The final plot shows `A⁻¹` applied to the shape. A missing pivot stops the reduction and reports that `A` is singular. The finished matrix is checked against SymPy's `rref()` and `np.linalg.inv`. The demo saves this as `outputs/inverse.png`.
 - RREF is printed as an augmented matrix and final reduced matrix; it uses the class-notebook `Matrix().rref()` method rather than a custom row-reduction algorithm.
 
 ## Applications in CS

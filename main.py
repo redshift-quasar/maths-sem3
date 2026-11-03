@@ -15,7 +15,11 @@ SHAPES = {
 
 
 def numbers(prompt, count=None):
-    values = np.array([float(x) for x in input(prompt).replace(',',' ').split()])
+    return numbers_from(input(prompt), count)
+
+
+def numbers_from(text, count=None):
+    values = np.array([float(x) for x in text.replace(',',' ').split()])
     if len(values) == 0 or not np.isfinite(values).all() or (count is not None and len(values) != count):
         raise ValueError(f'Enter {count if count is not None else "one or more"} finite numbers.')
     return values
@@ -33,11 +37,25 @@ def choose_shape():
         return SHAPES[name].copy()
     if name != 'custom':
         raise ValueError('Choose one of the listed shapes.')
-    print('Enter boundary vertices in order; avoid crossing edges.')
-    x = numbers('x coordinates: '); y = numbers('y coordinates: ',len(x))
-    if len(x) < 3:
-        raise ValueError('A shape needs at least three points.')
-    return np.vstack((x,y))
+    print('Enter boundary vertices in order, one point per line; avoid crossing edges.')
+    print('Type "u" to remove the last point, or press Enter on an empty line to finish.')
+    points = []
+    live = vis.LiveShape()
+    try:
+        while True:
+            text = input(f'Point {len(points)+1} (x y): ').strip().lower()
+            if text == '':
+                if len(points) >= 3: break
+                print('A shape needs at least three points.'); continue
+            if text == 'u':
+                if points: print('Removed', points.pop())
+            else:
+                try: points.append(tuple(float(v) for v in numbers_from(text, 2)))
+                except ValueError as error: print('Please try again:', error); continue
+            live.update(points)
+    finally:
+        live.close()
+    return np.array(points).T
 
 
 def choose_transform(allow_translation=True):
@@ -84,6 +102,15 @@ def calculator():
     else: raise ValueError('Choose a listed calculator operation.')
 
 
+def inverse(shape, A=None, filename=None):
+    if A is None:
+        A = read_matrix()
+    print('A:\n', A)
+    steps, result = ops.gauss_jordan_steps(A)
+    vis.gauss_jordan(steps, result, shape, filename)
+    return result
+
+
 def demo():
     print('\nFULL DEMO: 2D Shape Transformer – Matrix Operations in Computer Graphics')
     shape = SHAPES['house'].copy()
@@ -118,6 +145,7 @@ def demo():
     ops.multiply(A,B); ops.transpose(A); ops.determinant(A); ops.rank(A)
     ops.determinant([[1,2,3],[0,4,5],[1,0,6]])
     ops.inverse_gauss_jordan(A); ops.inverse_gauss_jordan([[1,2],[2,4]])
+    inverse(shape,A,'inverse.png')
     print('Demo complete. Plots saved in outputs/.')
 
 
@@ -127,13 +155,15 @@ def main():
     while True:
         print('\n1. Choose shape\n2. Apply a transformation\n3. Chain two transformations (AB vs BA)'
               '\n4. Undo last transformation\n5. Find transformation from point pairs'
-              '\n6. Four fundamental subspaces\n7. Eigenvectors (bonus)\n8. SVD (bonus)'
-              '\n9. Basic matrix calculator\n0. Run full demo\nq. Quit')
+              '\n6. Four fundamental subspaces\n7. Eigenvectors \n8. SVD'
+              '\n9. Basic matrix calculator\n10. Inverse (Gauss–Jordan, step by step)\n0. Run full demo\nq. Quit')
         try:
             choice = input('Choice: ').strip().lower()
             if choice == 'q': break
             if choice == '0': demo()
-            elif choice == '1': shape = choose_shape(); last = None; print('Shape:\n',shape)
+            elif choice == '1':
+                shape = choose_shape(); last = None; print('Shape:\n',shape)
+                vis.show_shape(shape,'Chosen shape')
             elif choice == '2':
                 name,T = choose_transform()
                 result = transform(shape,name,T)
@@ -160,7 +190,8 @@ def main():
                 elif choice == '7': la.eigen(T)
                 else: la.svd(T,shape)
             elif choice == '9': calculator()
-            else: print('Please choose 0–9 or q.')
+            elif choice == '10': inverse(shape)
+            else: print('Please choose 0–10 or q.')
         except (EOFError,KeyboardInterrupt):
             print('\nGoodbye.'); break
         except (ValueError,TypeError,OverflowError,np.linalg.LinAlgError) as error:
